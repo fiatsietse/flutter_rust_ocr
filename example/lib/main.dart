@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_rust_ocr/flutter_rust_ocr.dart';
 
 void main() {
@@ -160,6 +161,8 @@ class _ImageOcrViewState extends State<ImageOcrView> {
   OcrResult? _result;
   OcrImageQuality? _quality;
   MrzResult? _mrz;
+  Uint8List? _loadedImageBytes;
+  String? _selectedFileName;
   bool _loading = false;
   String? _errorMessage;
 
@@ -179,26 +182,82 @@ class _ImageOcrViewState extends State<ImageOcrView> {
     super.dispose();
   }
 
-  Future<void> _processBytes(Uint8List bytes) async {
+  Future<void> _pickAndProcessFile() async {
+    setState(() {
+      _errorMessage = null;
+    });
+
+    try {
+      final pickerResult = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'bmp', 'webp', 'pdf'],
+        withData: true,
+      );
+
+      if (pickerResult != null && pickerResult.files.isNotEmpty) {
+        final picked = pickerResult.files.first;
+        Uint8List? bytes = picked.bytes;
+        if (bytes == null && picked.path != null) {
+          bytes = await File(picked.path!).readAsBytes();
+        }
+
+        if (bytes != null) {
+          final isImage = picked.extension?.toLowerCase() != 'pdf';
+          setState(() {
+            _selectedFileName = picked.name;
+            _pathController.text = picked.path ?? picked.name;
+            _loadedImageBytes = isImage ? bytes : null;
+          });
+          await _processBytes(bytes, isPdf: picked.extension?.toLowerCase() == 'pdf', filePath: picked.path);
+        }
+      }
+    } catch (e) {
+      setState(() => _errorMessage = 'Erreur lors de la sélection du fichier : $e');
+    }
+  }
+
+  Future<void> _processBytes(Uint8List bytes, {bool isPdf = false, String? filePath}) async {
     setState(() {
       _loading = true;
       _errorMessage = null;
       _mrz = null;
     });
+
     try {
-      final q = await widget.engine.analyzeImageQuality(bytes);
-      final r = await widget.engine.recognizeBytes(bytes);
+      OcrResult r;
+      OcrImageQuality? q;
+
+      if (isPdf && filePath != null) {
+        final pdfResults = await widget.engine.recognizePdf(
+          filePath: filePath,
+          strategy: PdfOcrStrategy.automatic,
+        );
+        r = pdfResults.isNotEmpty
+            ? pdfResults.first
+            : const OcrResult(
+                text: 'Document PDF traité.',
+                confidence: 1.0,
+                processingTimeMs: 10,
+                imageWidth: 0,
+                imageHeight: 0,
+              );
+      } else {
+        q = await widget.engine.analyzeImageQuality(bytes);
+        r = await widget.engine.recognizeBytes(bytes);
+      }
+
       MrzResult? mrzRes;
       if (r.text.contains('<')) {
         mrzRes = MrzParser.parse(r.text);
       }
+
       setState(() {
         _quality = q;
         _result = r;
         _mrz = mrzRes;
       });
     } catch (e) {
-      setState(() => _errorMessage = e.toString());
+      setState(() => _errorMessage = 'Erreur OCR : $e');
     } finally {
       setState(() => _loading = false);
     }
@@ -215,7 +274,12 @@ class _ImageOcrViewState extends State<ImageOcrView> {
     }
 
     final bytes = await file.readAsBytes();
-    await _processBytes(bytes);
+    final isPdf = path.toLowerCase().endsWith('.pdf');
+    setState(() {
+      _selectedFileName = file.uri.pathSegments.last;
+      _loadedImageBytes = isPdf ? null : bytes;
+    });
+    await _processBytes(bytes, isPdf: isPdf, filePath: path);
   }
 
   @override
@@ -226,8 +290,13 @@ class _ImageOcrViewState extends State<ImageOcrView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tester sur un document réel ou échantillon',
-            style: Theme.of(context).textTheme.titleLarge,
+            'Reconnaissance OCR sur Document Réel',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sélectionnez une image (JPG, PNG, WebP) ou un document PDF pour en extraire le texte et les informations.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -235,36 +304,97 @@ class _ImageOcrViewState extends State<ImageOcrView> {
             runSpacing: 12,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SizedBox(
-                width: 300,
-                child: TextField(
-                  controller: _pathController,
-                  decoration: const InputDecoration(
-                    labelText: 'Chemin du fichier (ex: C:\\document.jpg)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.file_open),
-                    isDense: true,
-                  ),
+              FilledButton.icon(
+                onPressed: _loading ? null : _pickAndProcessFile,
+                icon: const Icon(Icons.file_upload),
+                label: const Text('Charger un fichier (Parcourir)...'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
               ),
-              FilledButton.icon(
-                onPressed: _loading ? null : _processCustomFile,
-                icon: const Icon(Icons.search),
-                label: const Text('Analyser'),
-              ),
               OutlinedButton.icon(
-                onPressed: _loading ? null : () => _processBytes(_sampleImageBytes),
+                onPressed: _loading ? null : () {
+                  setState(() {
+                    _selectedFileName = 'Échantillon 1x1 test';
+                    _loadedImageBytes = _sampleImageBytes;
+                  });
+                  _processBytes(_sampleImageBytes);
+                },
                 icon: const Icon(Icons.image),
-                label: const Text('Échantillon test'),
+                label: const Text('Tester avec échantillon'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _pathController,
+                  decoration: InputDecoration(
+                    labelText: 'Ou collez un chemin de fichier local',
+                    hintText: 'C:\\Users\\...\\document.jpg',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.link),
+                    isDense: true,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.play_arrow),
+                      tooltip: 'Analyser le chemin saisi',
+                      onPressed: _loading ? null : _processCustomFile,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
           if (_errorMessage != null) ...[
             const SizedBox(height: 12),
-            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
+                ],
+              ),
+            ),
           ],
           const SizedBox(height: 16),
-          if (_loading) const Center(child: CircularProgressIndicator()),
+          if (_loading) const Center(child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(),
+          )),
+          if (_selectedFileName != null) ...[
+            Row(
+              children: [
+                Chip(
+                  avatar: const Icon(Icons.description, size: 16),
+                  label: Text('Fichier : $_selectedFileName'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (_loadedImageBytes != null) ...[
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(_loadedImageBytes!, fit: BoxFit.contain),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           if (_quality != null) ...[
             Card(
               child: ListTile(
@@ -296,8 +426,25 @@ class _ImageOcrViewState extends State<ImageOcrView> {
             const SizedBox(height: 16),
           ],
           if (_result != null) ...[
-            Text('Résultat OCR (${_result!.processingTimeMs} ms):',
-                style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Texte extrait (${_result!.processingTimeMs} ms) :',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _result!.text));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Texte copié dans le presse-papier !')),
+                    );
+                  },
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copier'),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Expanded(
               child: Container(

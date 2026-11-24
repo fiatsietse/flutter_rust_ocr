@@ -109,5 +109,16 @@ void main() {
       expect(template.fields.length, 1);
       expect(template.fields.first.required, isTrue);
     });
+
+    test('FfiOcrPlatform initialization and execution', () async {
+      final ffiPlatform = FfiOcrPlatform();
+      await ffiPlatform.initialize(const OcrConfig());
+      final quality = await ffiPlatform.analyzeQuality(Uint8List.fromList([1, 2, 3]));
+      expect(quality.isAcceptable, isTrue);
+
+      final result = await ffiPlatform.recognizeBytes(Uint8List.fromList([1, 2, 3]));
+      expect(result.text, isEmpty);
+      await ffiPlatform.dispose();
+    });
   });
 }

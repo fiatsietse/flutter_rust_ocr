@@ -10,3 +10,4 @@ export 'src/models/document.dart';
 export 'src/models/batch.dart';
 export 'src/realtime/realtime_session.dart';
 export 'src/platform/ocr_platform_interface.dart';
+export 'src/platform/ocr_ffi_bindings.dart';

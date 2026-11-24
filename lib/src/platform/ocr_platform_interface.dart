@@ -34,11 +34,9 @@ abstract class OcrPlatformInterface extends PlatformInterface {
 
 class _DefaultOcrPlatform extends OcrPlatformInterface {
   bool _initialized = false;
-  OcrConfig? _config;
 
   @override
   Future<void> initialize(OcrConfig config) async {
-    _config = config;
     _initialized = true;
   }
 
@@ -47,14 +45,13 @@ class _DefaultOcrPlatform extends OcrPlatformInterface {
     if (!_initialized) {
       throw StateError('OCR engine not initialized');
     }
-    // Default fallback or FFI dispatch
-    return OcrResult(
+    return const OcrResult(
       text: '',
       confidence: 1.0,
       processingTimeMs: 0,
       imageWidth: 0,
       imageHeight: 0,
-      blocks: const [],
+      blocks: [],
     );
   }
 
@@ -63,13 +60,13 @@ class _DefaultOcrPlatform extends OcrPlatformInterface {
     if (!_initialized) {
       throw StateError('OCR engine not initialized');
     }
-    return OcrResult(
+    return const OcrResult(
       text: '',
       confidence: 1.0,
       processingTimeMs: 0,
       imageWidth: 0,
       imageHeight: 0,
-      blocks: const [],
+      blocks: [],
     );
   }
 
@@ -78,13 +75,13 @@ class _DefaultOcrPlatform extends OcrPlatformInterface {
     if (!_initialized) {
       throw StateError('OCR engine not initialized');
     }
-    return OcrResult(
+    return const OcrResult(
       text: '',
       confidence: 1.0,
       processingTimeMs: 0,
       imageWidth: 0,
       imageHeight: 0,
-      blocks: const [],
+      blocks: [],
     );
   }
 

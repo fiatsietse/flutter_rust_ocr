@@ -169,13 +169,13 @@ class FfiOcrPlatform extends OcrPlatformInterface {
         return OcrResult.fromJson(json);
       }
     }
-    return OcrResult(
+    return const OcrResult(
       text: '',
       confidence: 1.0,
       processingTimeMs: 1,
       imageWidth: 0,
       imageHeight: 0,
-      blocks: const [],
+      blocks: [],
     );
   }
 

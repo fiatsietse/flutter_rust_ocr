@@ -14,9 +14,9 @@ Moteur OCR multiplateforme (Android, iOS, Windows, Linux, macOS, Web) haute perf
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Guide de démarrage](docs/getting_started.md)
-- [Référence de l'API](docs/api_reference.md)
+- [Architecture](doc/architecture.md)
+- [Guide de démarrage](doc/getting_started.md)
+- [Référence de l'API](doc/api_reference.md)
 - [Statut du projet](PROJECT_STATUS.md)
 
 ## Licence

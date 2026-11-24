@@ -1,0 +1,33 @@
+{
+  "description": "Corpus synthétique de validation pour l'évaluation fonctionnelle de flutter_rust_ocr",
+  "samples": [
+    {
+      "id": "sample_fr_01",
+      "language": "fr",
+      "ground_truth": "République Française - Carte Nationale d'Identité",
+      "expected_blocks": 1,
+      "difficulty": "normal"
+    },
+    {
+      "id": "sample_fr_accents",
+      "language": "fr",
+      "ground_truth": "L'élève étudie à l'aube près de la forêt d'Épinal.",
+      "expected_blocks": 1,
+      "difficulty": "accents"
+    },
+    {
+      "id": "sample_en_receipt",
+      "language": "en",
+      "ground_truth": "TOTAL AMOUNT: $42.50\nTAX: $3.80\nTHANK YOU FOR YOUR VISIT!",
+      "expected_blocks": 3,
+      "difficulty": "receipt"
+    },
+    {
+      "id": "sample_mrz_td3",
+      "language": "multilingual",
+      "ground_truth": "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\nL898902C36UTO7408122F1204159ZE184226B<<<<<10",
+      "expected_blocks": 2,
+      "difficulty": "mrz"
+    }
+  ]
+}

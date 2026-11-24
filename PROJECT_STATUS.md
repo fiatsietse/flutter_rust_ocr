@@ -33,7 +33,7 @@ Dernière mise à jour : 24 novembre 2026
 
 ## 3. Historique des tests et validation
 
-- **Tests unitaires Dart SDK** : 13/13 tests validés (`test/flutter_rust_ocr_test.dart`).
+- **Tests unitaires Dart SDK** : 16/16 tests validés (`test/flutter_rust_ocr_test.dart` et `test/ocr_corpus_eval_test.dart`).
 - **Tests fonctionnels Application Démo** : Validés (`example/test/widget_test.dart`).
 - **Composants Rust Core** :
   - Décodeur CTC (`CtcDecoder`) avec support multilingue et accents français (à, é, è, ê, ô, etc.).
@@ -41,6 +41,9 @@ Dernière mise à jour : 24 novembre 2026
   - Parser MRZ (ICAO 9303, TD1/TD3 avec validation de clé de contrôle).
   - Gestionnaire de modèles et vérification d'empreinte SHA-256 (`ModelManager`).
 - **Outillage & Qualité** :
+  - Corpus synthétique de validation OCR (`test/corpus/dataset.json`).
   - Métriques d'évaluation de précision OCR (CER, WER, Levenshtein, Exact Match).
+  - Scripts d'export et téléchargement (`scripts/export_paddleocr_to_onnx.py`, `scripts/download_models.py`).
+  - Architecture Decision Records (`doc/adr/ADR-001...`, `ADR-002...`, `ADR-003...`).
   - Workflow CI GitHub Actions (`.github/workflows/ci.yml`).
   - Script de benchmarks (`benchmarks/ocr_benchmark.dart`).

@@ -7,6 +7,7 @@ pub mod engine;
 pub mod detection;
 pub mod recognition;
 pub mod model_manager;
+pub mod mrz;
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;

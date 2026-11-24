@@ -12,3 +12,6 @@ export 'src/realtime/realtime_session.dart';
 export 'src/platform/ocr_platform_interface.dart';
 export 'src/platform/ocr_ffi_bindings.dart';
 export 'src/model_manager/model_manager.dart';
+export 'src/document/mrz_parser.dart';
+export 'src/document/pdf_handler.dart';
+export 'src/utils/metrics.dart';

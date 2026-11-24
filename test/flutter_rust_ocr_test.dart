@@ -116,6 +116,50 @@ void main() {
       expect(manager.isModelInstalled('ch_PP-OCRv4_rec'), isTrue);
     });
 
+    test('MrzParser computes checksum and parses TD3 passport properly', () {
+      expect(MrzParser.computeCheckDigit('520727'), 3);
+      expect(MrzParser.verifyCheckDigit('520727', '3'), isTrue);
+
+      const l1 = 'P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<';
+      const l2 = 'L898902C36UTO7408122F1204159ZE184226B<<<<<10';
+      final res = MrzParser.parse('$l1\n$l2');
+
+      expect(res, isNotNull);
+      expect(res!.format, MrzFormat.td3);
+      expect(res.surname, 'ERIKSSON');
+      expect(res.givenNames, 'ANNA MARIA');
+      expect(res.documentNumber, 'L898902C3');
+      expect(res.isDocumentNumberValid, isTrue);
+      expect(res.isValid, isTrue);
+    });
+
+    test('OcrMetrics calculates CER, WER, and Levenshtein distance', () {
+      expect(OcrMetrics.levenshteinDistance('chat', 'chats'), 1);
+      expect(OcrMetrics.calculateCer('chat', 'chat'), 0.0);
+      expect(OcrMetrics.calculateCer('chat', 'chats'), 0.25);
+
+      expect(OcrMetrics.calculateWer('bonjour le monde', 'bonjour le monde'), 0.0);
+      expect(OcrMetrics.calculateWer('bonjour le monde', 'bonjour monde'), 1 / 3);
+      expect(OcrMetrics.calculateExactMatch('Test', 'Test'), 1.0);
+      expect(OcrMetrics.calculateExactMatch('Test', 'Other'), 0.0);
+    });
+
+    test('PdfDocumentHandler selects appropriate strategy', () {
+      final stratAuto = PdfDocumentHandler.resolveStrategy(
+        requestedStrategy: PdfOcrStrategy.automatic,
+        nativeText: 'This is a high quality native PDF document layer with plenty of text.',
+        imageResolutionDpi: 300,
+      );
+      expect(stratAuto, PdfOcrStrategy.nativeTextOnly);
+
+      final stratOcr = PdfDocumentHandler.resolveStrategy(
+        requestedStrategy: PdfOcrStrategy.automatic,
+        nativeText: null,
+        imageResolutionDpi: 300,
+      );
+      expect(stratOcr, PdfOcrStrategy.ocrOnly);
+    });
+
     test('FfiOcrPlatform initialization and execution', () async {
       final ffiPlatform = FfiOcrPlatform();
       await ffiPlatform.initialize(const OcrConfig());

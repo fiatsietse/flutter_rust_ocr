@@ -1,0 +1,39 @@
+name: flutter_rust_ocr
+description: "A fast, offline, privacy-first cross-platform OCR engine for Flutter powered by Rust."
+version: 0.1.0
+homepage: https://github.com/perso/flutter_rust_ocr
+repository: https://github.com/perso/flutter_rust_ocr
+issue_tracker: https://github.com/perso/flutter_rust_ocr/issues
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+  meta: ^1.11.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.example.flutter_rust_ocr
+        pluginClass: FlutterRustOcrPlugin
+      ios:
+        pluginClass: FlutterRustOcrPlugin
+      windows:
+        pluginClass: FlutterRustOcrPluginCApi
+      linux:
+        pluginClass: FlutterRustOcrPlugin
+      macos:
+        pluginClass: FlutterRustOcrPlugin
+      web:
+        pluginClass: FlutterRustOcrWeb
+        fileName: flutter_rust_ocr_web.dart

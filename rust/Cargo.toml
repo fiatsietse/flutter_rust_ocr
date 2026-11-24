@@ -1,0 +1,25 @@
+[package]
+name = "flutter_rust_ocr"
+version = "0.1.0"
+edition = "2021"
+authors = ["flutter_rust_ocr developers"]
+description = "High-performance offline OCR core engine for Flutter"
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "rayon"] }
+imageproc = { version = "0.25", default-features = false }
+ndarray = { version = "0.16", features = ["serde"] }
+rayon = "1.10"
+sha2 = "0.10"
+tracing = "0.1"
+lazy_static = "1.5"
+
+[dev-dependencies]
+tempfile = "3.10"

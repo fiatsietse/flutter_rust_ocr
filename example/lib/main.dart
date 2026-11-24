@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_rust_ocr/flutter_rust_ocr.dart';
@@ -155,9 +156,12 @@ class ImageOcrView extends StatefulWidget {
 }
 
 class _ImageOcrViewState extends State<ImageOcrView> {
+  final TextEditingController _pathController = TextEditingController();
   OcrResult? _result;
   OcrImageQuality? _quality;
+  MrzResult? _mrz;
   bool _loading = false;
+  String? _errorMessage;
 
   // 1x1 dummy PNG image for testing
   final Uint8List _sampleImageBytes = Uint8List.fromList([
@@ -169,18 +173,49 @@ class _ImageOcrViewState extends State<ImageOcrView> {
     0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
   ]);
 
-  Future<void> _processSample() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _pathController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _processBytes(Uint8List bytes) async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+      _mrz = null;
+    });
     try {
-      final q = await widget.engine.analyzeImageQuality(_sampleImageBytes);
-      final r = await widget.engine.recognizeBytes(_sampleImageBytes);
+      final q = await widget.engine.analyzeImageQuality(bytes);
+      final r = await widget.engine.recognizeBytes(bytes);
+      MrzResult? mrzRes;
+      if (r.text.contains('<')) {
+        mrzRes = MrzParser.parse(r.text);
+      }
       setState(() {
         _quality = q;
         _result = r;
+        _mrz = mrzRes;
       });
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  Future<void> _processCustomFile() async {
+    final path = _pathController.text.trim();
+    if (path.isEmpty) return;
+
+    final file = File(path);
+    if (!file.existsSync()) {
+      setState(() => _errorMessage = 'Fichier introuvable : $path');
+      return;
+    }
+
+    final bytes = await file.readAsBytes();
+    await _processBytes(bytes);
   }
 
   @override
@@ -190,18 +225,46 @@ class _ImageOcrViewState extends State<ImageOcrView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Text(
+            'Tester sur un document réel ou échantillon',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              FilledButton.icon(
-                onPressed: _loading ? null : _processSample,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Tester reconnaissance image'),
+              SizedBox(
+                width: 300,
+                child: TextField(
+                  controller: _pathController,
+                  decoration: const InputDecoration(
+                    labelText: 'Chemin du fichier (ex: C:\\document.jpg)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.file_open),
+                    isDense: true,
+                  ),
+                ),
               ),
-              const SizedBox(width: 16),
-              if (_loading) const CircularProgressIndicator(),
+              FilledButton.icon(
+                onPressed: _loading ? null : _processCustomFile,
+                icon: const Icon(Icons.search),
+                label: const Text('Analyser'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _loading ? null : () => _processBytes(_sampleImageBytes),
+                icon: const Icon(Icons.image),
+                label: const Text('Échantillon test'),
+              ),
             ],
           ),
-          const SizedBox(height: 24),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+          ],
+          const SizedBox(height: 16),
+          if (_loading) const Center(child: CircularProgressIndicator()),
           if (_quality != null) ...[
             Card(
               child: ListTile(
@@ -209,11 +272,24 @@ class _ImageOcrViewState extends State<ImageOcrView> {
                   _quality!.isAcceptable ? Icons.thumb_up : Icons.warning,
                   color: _quality!.isAcceptable ? Colors.green : Colors.orange,
                 ),
-                title: const Text('Évaluation de la qualité'),
+                title: const Text('Évaluation de la qualité d\'image'),
                 subtitle: Text(
                   'Netteté: ${(_quality!.blurScore * 100).toStringAsFixed(1)}% | '
                   'Luminosité: ${(_quality!.brightnessScore * 100).toStringAsFixed(1)}% | '
                   'Contraste: ${(_quality!.contrastScore * 100).toStringAsFixed(1)}%',
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_mrz != null) ...[
+            Card(
+              color: Colors.green.shade50,
+              child: ListTile(
+                leading: const Icon(Icons.badge, color: Colors.green),
+                title: Text('Zone MRZ Détectée (${_mrz!.documentType})'),
+                subtitle: Text(
+                  'Titulaire: ${_mrz!.surname} ${_mrz!.givenNames} | N°: ${_mrz!.documentNumber} | Exp: ${_mrz!.expiryDate} | Valide: ${_mrz!.isValid}',
                 ),
               ),
             ),
@@ -235,7 +311,7 @@ class _ImageOcrViewState extends State<ImageOcrView> {
                 child: SingleChildScrollView(
                   child: SelectableText(
                     _result!.text.isEmpty
-                        ? 'Image échantillon traitée avec succès (aucun texte détecté sur le pixel test).'
+                        ? 'Image traitée avec succès (aucun texte détecté).'
                         : _result!.text,
                   ),
                 ),

@@ -27,16 +27,15 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.flutter_rust_ocr
-        pluginClass: FlutterRustOcrPlugin
+        ffiPlugin: true
       ios:
-        pluginClass: FlutterRustOcrPlugin
+        ffiPlugin: true
       windows:
-        pluginClass: FlutterRustOcrPluginCApi
+        ffiPlugin: true
       linux:
-        pluginClass: FlutterRustOcrPlugin
+        ffiPlugin: true
       macos:
-        pluginClass: FlutterRustOcrPlugin
+        ffiPlugin: true
       web:
         pluginClass: FlutterRustOcrWeb
         fileName: flutter_rust_ocr_web.dart

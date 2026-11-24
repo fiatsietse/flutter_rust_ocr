@@ -88,26 +88,32 @@ void main() {
       expect(OcrBoundingBox.fromJson(bbox.toJson()), equals(bbox));
     });
 
-    test('DocumentTemplate parsing', () {
-      final json = {
-        'id': 'cni_fr',
-        'version': '1.0',
-        'name': 'Carte Nationale d\'Identité',
-        'fields': [
+    test('OcrModelManager loads manifest correctly', () async {
+      final manager = OcrModelManager();
+      const manifestSample = '''
+      {
+        "version": "1.0",
+        "models": [
           {
-            'name': 'docNumber',
-            'type': 'string',
-            'required': true,
-            'labels': ['Numéro', 'N°'],
-            'pattern': r'^[0-9A-Z]{12}$',
+            "id": "ch_PP-OCRv4_rec",
+            "version": "4.0",
+            "model_type": "recognition",
+            "languages": ["fr", "en"],
+            "size_bytes": 10500000,
+            "sha256": "abc123hash",
+            "filename": "ch_PP-OCRv4_rec.onnx"
           }
         ]
-      };
+      }
+      ''';
 
-      final template = DocumentTemplate.fromJson(json);
-      expect(template.id, 'cni_fr');
-      expect(template.fields.length, 1);
-      expect(template.fields.first.required, isTrue);
+      await manager.loadManifest(manifestSample);
+      expect(manager.availableModels.length, 1);
+      expect(manager.availableModels.first.id, 'ch_PP-OCRv4_rec');
+      expect(manager.isModelInstalled('ch_PP-OCRv4_rec'), isFalse);
+
+      manager.markAsInstalled('ch_PP-OCRv4_rec');
+      expect(manager.isModelInstalled('ch_PP-OCRv4_rec'), isTrue);
     });
 
     test('FfiOcrPlatform initialization and execution', () async {

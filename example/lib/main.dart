@@ -71,12 +71,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isNative = _engine.isNativeEngine;
+    final isMobile = MediaQuery.of(context).size.width < 640;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flutter Rust OCR Demo'),
+        title: Text(isMobile ? 'Flutter OCR' : 'Flutter Rust OCR Demo'),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Chip(
               avatar: Icon(
                 !_isInitialized
@@ -90,47 +92,79 @@ class _HomeScreenState extends State<HomeScreen> {
               label: Text(
                 !_isInitialized
                     ? 'Initialisation...'
-                    : (isNative ? 'Rust FFI Réel (Connecté)' : 'Mode Simulation (Stub)'),
+                    : (isMobile
+                        ? (isNative ? 'Natif' : 'Stub')
+                        : (isNative ? 'Rust FFI Réel (Connecté)' : 'Mode Simulation (Stub)')),
               ),
             ),
           )
         ],
       ),
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-            labelType: NavigationRailLabelType.all,
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.image),
-                label: Text('Image OCR'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.dynamic_feed),
-                label: Text('Lots'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.assignment),
-                label: Text('Documents'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.videocam),
-                label: Text('Temps réel'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.speed),
-                label: Text('Benchmarks'),
-              ),
-            ],
-          ),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: _buildSelectedTab(),
-          ),
-        ],
-      ),
+      bottomNavigationBar: isMobile
+          ? NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.image),
+                  label: 'Image',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.dynamic_feed),
+                  label: 'Lots',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.assignment),
+                  label: 'Docs',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.videocam),
+                  label: 'Direct',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.speed),
+                  label: 'Bench',
+                ),
+              ],
+            )
+          : null,
+      body: isMobile
+          ? _buildSelectedTab()
+          : Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+                  labelType: NavigationRailLabelType.all,
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.image),
+                      label: Text('Image OCR'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.dynamic_feed),
+                      label: Text('Lots'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.assignment),
+                      label: Text('Documents'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.videocam),
+                      label: Text('Temps réel'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.speed),
+                      label: Text('Benchmarks'),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(
+                  child: _buildSelectedTab(),
+                ),
+              ],
+            ),
     );
   }
 
@@ -293,8 +327,8 @@ class _ImageOcrViewState extends State<ImageOcrView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -500,24 +534,22 @@ class _ImageOcrViewState extends State<ImageOcrView> {
               ],
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    _result!.text.isEmpty
-                        ? 'Image traitée avec succès (aucun texte détecté).'
-                        : _result!.text,
-                  ),
-                ),
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 100),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: SelectableText(
+                _result!.text.isEmpty
+                    ? 'Image traitée avec succès (aucun texte détecté).'
+                    : _result!.text,
               ),
             ),
+            const SizedBox(height: 24),
           ],
         ],
       ),
@@ -551,8 +583,8 @@ class _BatchOcrViewState extends State<BatchOcrView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -616,8 +648,8 @@ class _DocumentExtractionViewState extends State<DocumentExtractionView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -672,8 +704,8 @@ class _RealtimeOcrViewState extends State<RealtimeOcrView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -727,8 +759,8 @@ class _BenchmarkViewState extends State<BenchmarkView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

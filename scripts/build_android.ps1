@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Compile the Rust OCR core for Android targets using cargo-ndk.
 .DESCRIPTION

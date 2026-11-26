@@ -20,11 +20,11 @@ class OcrImageQuality {
 
   factory OcrImageQuality.fromJson(Map<String, dynamic> json) {
     return OcrImageQuality(
-      isAcceptable: json['isAcceptable'] as bool? ?? true,
-      blurScore: (json['blurScore'] as num?)?.toDouble() ?? 1.0,
-      brightnessScore: (json['brightnessScore'] as num?)?.toDouble() ?? 1.0,
-      contrastScore: (json['contrastScore'] as num?)?.toDouble() ?? 1.0,
-      resolutionScore: (json['resolutionScore'] as num?)?.toDouble() ?? 1.0,
+      isAcceptable: (json['isAcceptable'] ?? json['is_acceptable']) as bool? ?? true,
+      blurScore: ((json['blurScore'] ?? json['blur_score']) as num?)?.toDouble() ?? 1.0,
+      brightnessScore: ((json['brightnessScore'] ?? json['brightness_score']) as num?)?.toDouble() ?? 1.0,
+      contrastScore: ((json['contrastScore'] ?? json['contrast_score']) as num?)?.toDouble() ?? 1.0,
+      resolutionScore: ((json['resolutionScore'] ?? json['resolution_score']) as num?)?.toDouble() ?? 1.0,
       recommendations: (json['recommendations'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??

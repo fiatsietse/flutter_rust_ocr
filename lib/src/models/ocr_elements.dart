@@ -17,8 +17,8 @@ class OcrCharacter {
     return OcrCharacter(
       text: json['text'] as String,
       confidence: (json['confidence'] as num?)?.toDouble(),
-      boundingBox: json['boundingBox'] != null
-          ? OcrBoundingBox.fromJson(json['boundingBox'] as Map<String, dynamic>)
+      boundingBox: (json['boundingBox'] ?? json['bounding_box']) != null
+          ? OcrBoundingBox.fromJson((json['boundingBox'] ?? json['bounding_box']) as Map<String, dynamic>)
           : null,
     );
   }
@@ -50,8 +50,8 @@ class OcrWord {
     return OcrWord(
       text: json['text'] as String,
       confidence: (json['confidence'] as num?)?.toDouble(),
-      boundingBox: json['boundingBox'] != null
-          ? OcrBoundingBox.fromJson(json['boundingBox'] as Map<String, dynamic>)
+      boundingBox: (json['boundingBox'] ?? json['bounding_box']) != null
+          ? OcrBoundingBox.fromJson((json['boundingBox'] ?? json['bounding_box']) as Map<String, dynamic>)
           : null,
       polygon: json['polygon'] != null ? OcrPolygon.fromJson(json['polygon']) : null,
       characters: (json['characters'] as List<dynamic>?)
@@ -91,8 +91,8 @@ class OcrLine {
     return OcrLine(
       text: json['text'] as String,
       confidence: (json['confidence'] as num?)?.toDouble(),
-      boundingBox: json['boundingBox'] != null
-          ? OcrBoundingBox.fromJson(json['boundingBox'] as Map<String, dynamic>)
+      boundingBox: (json['boundingBox'] ?? json['bounding_box']) != null
+          ? OcrBoundingBox.fromJson((json['boundingBox'] ?? json['bounding_box']) as Map<String, dynamic>)
           : null,
       polygon: json['polygon'] != null ? OcrPolygon.fromJson(json['polygon']) : null,
       words: (json['words'] as List<dynamic>?)
@@ -129,8 +129,8 @@ class OcrParagraph {
     return OcrParagraph(
       text: json['text'] as String,
       confidence: (json['confidence'] as num?)?.toDouble(),
-      boundingBox: json['boundingBox'] != null
-          ? OcrBoundingBox.fromJson(json['boundingBox'] as Map<String, dynamic>)
+      boundingBox: (json['boundingBox'] ?? json['bounding_box']) != null
+          ? OcrBoundingBox.fromJson((json['boundingBox'] ?? json['bounding_box']) as Map<String, dynamic>)
           : null,
       lines: (json['lines'] as List<dynamic>?)
               ?.map((e) => OcrLine.fromJson(e as Map<String, dynamic>))
@@ -172,8 +172,8 @@ class OcrBlock {
       id: json['id'] as String? ?? '',
       text: json['text'] as String,
       confidence: (json['confidence'] as num?)?.toDouble(),
-      boundingBox: json['boundingBox'] != null
-          ? OcrBoundingBox.fromJson(json['boundingBox'] as Map<String, dynamic>)
+      boundingBox: (json['boundingBox'] ?? json['bounding_box']) != null
+          ? OcrBoundingBox.fromJson((json['boundingBox'] ?? json['bounding_box']) as Map<String, dynamic>)
           : null,
       polygon: json['polygon'] != null ? OcrPolygon.fromJson(json['polygon']) : null,
       lines: (json['lines'] as List<dynamic>?)
@@ -263,9 +263,9 @@ class OcrResult {
     return OcrResult(
       text: json['text'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble(),
-      processingTimeMs: json['processingTimeMs'] as int? ?? 0,
-      imageWidth: json['imageWidth'] as int? ?? 0,
-      imageHeight: json['imageHeight'] as int? ?? 0,
+      processingTimeMs: (json['processingTimeMs'] ?? json['processing_time_ms']) as int? ?? 0,
+      imageWidth: (json['imageWidth'] ?? json['image_width']) as int? ?? 0,
+      imageHeight: (json['imageHeight'] ?? json['image_height']) as int? ?? 0,
       blocks: (json['blocks'] as List<dynamic>?)
               ?.map((e) => OcrBlock.fromJson(e as Map<String, dynamic>))
               .toList() ??

@@ -21,6 +21,7 @@ impl BoundingBox {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Character {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -30,6 +31,7 @@ pub struct Character {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Word {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,6 +44,7 @@ pub struct Word {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Line {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -54,6 +57,7 @@ pub struct Line {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Paragraph {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,6 +68,7 @@ pub struct Paragraph {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Block {
     pub id: String,
     pub text: String,
@@ -78,6 +83,7 @@ pub struct Block {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Page {
     pub page_number: usize,
     pub width: u32,
@@ -87,6 +93,7 @@ pub struct Page {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OcrResult {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]

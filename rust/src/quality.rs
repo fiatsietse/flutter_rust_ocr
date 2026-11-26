@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use image::{DynamicImage, GenericImageView, GrayImage, Luma};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QualityReport {
     pub is_acceptable: bool,
     pub blur_score: f64,

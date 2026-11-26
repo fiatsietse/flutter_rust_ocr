@@ -70,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isNative = _engine.isNativeEngine;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Flutter Rust OCR Demo'),
@@ -78,11 +79,19 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Chip(
               avatar: Icon(
-                _isInitialized ? Icons.check_circle : Icons.hourglass_top,
-                color: _isInitialized ? Colors.green : Colors.orange,
+                !_isInitialized
+                    ? Icons.hourglass_top
+                    : (isNative ? Icons.verified : Icons.info_outline),
+                color: !_isInitialized
+                    ? Colors.orange
+                    : (isNative ? Colors.green : Colors.amber.shade800),
                 size: 16,
               ),
-              label: Text(_isInitialized ? 'Moteur prêt' : 'Initialisation...'),
+              label: Text(
+                !_isInitialized
+                    ? 'Initialisation...'
+                    : (isNative ? 'Rust FFI Réel (Connecté)' : 'Mode Simulation (Stub)'),
+              ),
             ),
           )
         ],
@@ -298,6 +307,51 @@ class _ImageOcrViewState extends State<ImageOcrView> {
             'Sélectionnez une image (JPG, PNG, WebP) ou un document PDF pour en extraire le texte et les informations.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
           ),
+          const SizedBox(height: 12),
+          if (!widget.engine.isNativeEngine) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.amber.shade900),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Mode Simulation actif : la bibliothèque native Rust (libflutter_rust_ocr.so ou .dll) n\'est pas encore compilée dans le projet. '
+                      'Pour activer le vrai OCR Rust sur émulateur/appareil, lancez : powershell scripts/build_android.ps1',
+                      style: TextStyle(color: Colors.amber.shade900, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade300),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified, color: Colors.green),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Moteur Rust FFI Connecté : les images sont traitées en code machine natif haute performance.',
+                      style: TextStyle(color: Colors.green.shade900, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,

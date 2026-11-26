@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 
 import '../configuration/ocr_config.dart';
+import '../exceptions/ocr_exceptions.dart';
 import '../models/document.dart';
 import '../models/geometry.dart';
 import '../models/ocr_elements.dart';
@@ -63,6 +64,56 @@ class NativeOcrBindings {
   }
 
   bool get isLoaded => _dylib != null;
+
+  static ffi.DynamicLibrary? openLibrary({String? customPath}) {
+    if (customPath != null && customPath.isNotEmpty) {
+      try {
+        return ffi.DynamicLibrary.open(customPath);
+      } catch (e) {
+        debugPrint('FlutterRustOcr: Échec ouverture bibliothèque custom à $customPath: $e');
+        return null;
+      }
+    }
+
+    try {
+      if (Platform.isAndroid || Platform.isLinux) {
+        return ffi.DynamicLibrary.open('libflutter_rust_ocr.so');
+      } else if (Platform.isWindows) {
+        try {
+          return ffi.DynamicLibrary.open('flutter_rust_ocr.dll');
+        } catch (_) {
+          final candidates = [
+            'rust/target/release/flutter_rust_ocr.dll',
+            'rust/target/debug/flutter_rust_ocr.dll',
+            'target/release/flutter_rust_ocr.dll',
+            'target/debug/flutter_rust_ocr.dll',
+          ];
+          for (final path in candidates) {
+            try {
+              if (File(path).existsSync()) {
+                return ffi.DynamicLibrary.open(path);
+              }
+            } catch (_) {}
+          }
+          return null;
+        }
+      } else if (Platform.isMacOS || Platform.isIOS) {
+        try {
+          return ffi.DynamicLibrary.process();
+        } catch (_) {
+          try {
+            return ffi.DynamicLibrary.open('flutter_rust_ocr.framework/flutter_rust_ocr');
+          } catch (_) {
+            return null;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('FlutterRustOcr: Bibliothèque native non chargée ($e)');
+      return null;
+    }
+    return null;
+  }
 
   int initEngine(String configJson) {
     if (_init == null) return -99;
@@ -146,6 +197,29 @@ class FfiOcrPlatform extends OcrPlatformInterface {
 
   FfiOcrPlatform({NativeOcrBindings? bindings}) : _bindings = bindings;
 
+  @override
+  bool get isNative => _bindings != null && _bindings!.isLoaded;
+
+  bool get isNativeLoaded => isNative;
+
+  static FfiOcrPlatform autoLoad({String? customLibraryPath}) {
+    final dylib = NativeOcrBindings.openLibrary(customPath: customLibraryPath);
+    if (dylib != null) {
+      return FfiOcrPlatform(bindings: NativeOcrBindings(dylib: dylib));
+    }
+    return FfiOcrPlatform();
+  }
+
+  static bool autoRegister({String? customLibraryPath}) {
+    final dylib = NativeOcrBindings.openLibrary(customPath: customLibraryPath);
+    if (dylib != null) {
+      OcrPlatformInterface.instance =
+          FfiOcrPlatform(bindings: NativeOcrBindings(dylib: dylib));
+      return true;
+    }
+    return false;
+  }
+
   void setBindings(NativeOcrBindings bindings) {
     _bindings = bindings;
   }
@@ -166,6 +240,9 @@ class FfiOcrPlatform extends OcrPlatformInterface {
     if (_bindings != null && _bindings!.isLoaded) {
       final json = _bindings!.recognize(imageBytes);
       if (json != null) {
+        if (json.containsKey('error')) {
+          throw InvalidImageException(json['error'].toString());
+        }
         return OcrResult.fromJson(json);
       }
     }

@@ -10,6 +10,7 @@ import '../models/geometry.dart';
 import '../models/ocr_elements.dart';
 import '../models/quality.dart';
 import '../platform/ocr_platform_interface.dart';
+import '../platform/ocr_ffi_bindings.dart';
 import '../realtime/realtime_session.dart';
 
 class RustOcrEngine {
@@ -20,9 +21,15 @@ class RustOcrEngine {
   bool get isInitialized => _isInitialized && !_isDisposed;
   OcrConfig? get config => _config;
 
-  Future<void> initialize({OcrConfig? config}) async {
+  /// Indique si le moteur natif Rust est chargé et actif
+  bool get isNativeEngine => OcrPlatformInterface.instance.isNative;
+
+  Future<void> initialize({OcrConfig? config, String? nativeLibraryPath}) async {
     if (_isDisposed) {
       throw const EngineDisposedException();
+    }
+    if (!OcrPlatformInterface.instance.isNative) {
+      FfiOcrPlatform.autoRegister(customLibraryPath: nativeLibraryPath);
     }
     _config = config ?? const OcrConfig();
     await OcrPlatformInterface.instance.initialize(_config!);

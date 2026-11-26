@@ -22,6 +22,9 @@ abstract class OcrPlatformInterface extends PlatformInterface {
     _instance = instance;
   }
 
+  /// Indique si la plateforme active utilise le moteur natif Rust (FFI)
+  bool get isNative => false;
+
   Future<void> initialize(OcrConfig config);
   Future<OcrResult> recognizeBytes(Uint8List imageBytes);
   Future<OcrResult> recognizeImage(String imagePath);

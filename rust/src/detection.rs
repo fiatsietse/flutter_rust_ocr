@@ -160,6 +160,146 @@ impl DbNetPostProcessor {
     }
 }
 
+pub struct LineDetector {
+    pub min_line_height: u32,
+    pub max_line_height: u32,
+}
+
+impl Default for LineDetector {
+    fn default() -> Self {
+        Self {
+            min_line_height: 8,
+            max_line_height: 400,
+        }
+    }
+}
+
+impl LineDetector {
+    pub fn new(min_line_height: u32, max_line_height: u32) -> Self {
+        Self {
+            min_line_height,
+            max_line_height,
+        }
+    }
+
+    /// Detects text lines in an image using horizontal & vertical projection profiles
+    pub fn detect_lines(&self, img: &image::DynamicImage) -> Vec<BoundingBox> {
+        use image::GenericImageView;
+        let (width, height) = img.dimensions();
+        if width < 10 || height < 8 {
+            return Vec::new();
+        }
+
+        let gray = img.to_luma8();
+
+        // 1. Determine background lightness from 4 border edges
+        let mut border_sum = 0u64;
+        let mut border_count = 0u64;
+        for x in 0..width {
+            border_sum += gray.get_pixel(x, 0)[0] as u64;
+            border_sum += gray.get_pixel(x, height - 1)[0] as u64;
+            border_count += 2;
+        }
+        for y in 1..height - 1 {
+            border_sum += gray.get_pixel(0, y)[0] as u64;
+            border_sum += gray.get_pixel(width - 1, y)[0] as u64;
+            border_count += 2;
+        }
+        let avg_border = if border_count > 0 { (border_sum / border_count) as u8 } else { 255 };
+        let is_light_bg = avg_border > 127;
+
+        // 2. Compute horizontal projection of text pixels
+        let mut row_activity = vec![0u32; height as usize];
+        let diff_thresh = 30u8;
+
+        for y in 0..height {
+            let mut count = 0u32;
+            for x in 0..width {
+                let p = gray.get_pixel(x, y)[0];
+                let is_text = if is_light_bg {
+                    p < avg_border.saturating_sub(diff_thresh)
+                } else {
+                    p > avg_border.saturating_add(diff_thresh)
+                };
+                if is_text {
+                    count += 1;
+                }
+            }
+            if count >= (width / 120).max(4) {
+                row_activity[y as usize] = count;
+            }
+        }
+
+        // 3. Cluster contiguous rows into text bands
+        let mut bands = Vec::new();
+        let mut in_band = false;
+        let mut start_y = 0u32;
+
+        for y in 0..height {
+            let active = row_activity[y as usize] > 0;
+            if active && !in_band {
+                in_band = true;
+                start_y = y;
+            } else if !active && in_band {
+                in_band = false;
+                let h = y - start_y;
+                if h >= self.min_line_height && h <= self.max_line_height {
+                    bands.push((start_y, y));
+                }
+            }
+        }
+        if in_band {
+            let h = height - start_y;
+            if h >= self.min_line_height && h <= self.max_line_height {
+                bands.push((start_y, height));
+            }
+        }
+
+        if bands.is_empty() {
+            return vec![BoundingBox::new(0.0, 0.0, width as f64, height as f64)];
+        }
+
+        // 4. For each band, find horizontal left/right extent
+        let mut result = Vec::new();
+        for (y0, y1) in bands {
+            let mut min_x = width;
+            let mut max_x = 0;
+
+            for y in y0..y1 {
+                for x in 0..width {
+                    let p = gray.get_pixel(x, y)[0];
+                    let is_text = if is_light_bg {
+                        p < avg_border.saturating_sub(diff_thresh)
+                    } else {
+                        p > avg_border.saturating_add(diff_thresh)
+                    };
+                    if is_text {
+                        if x < min_x { min_x = x; }
+                        if x > max_x { max_x = x; }
+                    }
+                }
+            }
+
+            if max_x > min_x && (max_x - min_x) >= 8 {
+                let pad_x = ((max_x - min_x) / 50).max(2);
+                let pad_y = 2;
+                let fx = min_x.saturating_sub(pad_x) as f64;
+                let fy = y0.saturating_sub(pad_y) as f64;
+                let fw = ((max_x + pad_x).min(width) as f64 - fx).max(8.0);
+                let fh = ((y1 + pad_y).min(height) as f64 - fy).max(8.0);
+
+                result.push(BoundingBox::new(fx, fy, fw, fh));
+            }
+        }
+
+        if result.is_empty() {
+            vec![BoundingBox::new(0.0, 0.0, width as f64, height as f64)]
+        } else {
+            result
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

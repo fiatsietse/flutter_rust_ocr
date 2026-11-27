@@ -113,15 +113,16 @@ pub extern "C" fn ocr_recognize_bytes(
         }
     };
 
-    let lock = match GLOBAL_ENGINE.lock() {
+    let mut lock = match GLOBAL_ENGINE.lock() {
         Ok(l) => l,
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let engine = match lock.as_ref() {
-        Some(e) => e,
-        None => return std::ptr::null_mut(),
-    };
+    if lock.is_none() {
+        *lock = Some(OcrEngine::new(EngineConfig::default()));
+    }
+
+    let engine = lock.as_ref().unwrap();
 
     match engine.recognize(&img) {
         Ok(res) => {

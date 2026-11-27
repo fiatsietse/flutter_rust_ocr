@@ -4,6 +4,8 @@ use crate::errors::{OcrError, Result};
 use crate::models::{Block, BoundingBox, Line, OcrResult, Page, Point, Word};
 use crate::preprocessing::{Preprocessor, PreprocessingMode};
 use crate::quality::{QualityAnalyzer, QualityReport};
+use crate::detection::LineDetector;
+use crate::recognition::GlyphClassifier;
 
 pub struct EngineConfig {
     pub languages: Vec<String>,
@@ -105,8 +107,74 @@ impl OcrEngine {
             return Ok(Vec::new());
         }
 
-        // Structured OCR block reconstruction
-        // This coordinates detection bounding boxes and recognized texts
-        Ok(Vec::new())
+        let detector = LineDetector::default();
+        let classifier = GlyphClassifier::default();
+
+        let line_regions = detector.detect_lines(img);
+        if line_regions.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut blocks = Vec::new();
+        for (i, region) in line_regions.into_iter().enumerate() {
+            let cropped = img.crop_imm(
+                region.x as u32,
+                region.y as u32,
+                region.width as u32,
+                region.height as u32,
+            );
+
+            let (text, words, conf) = classifier.recognize_line(&cropped);
+            if text.trim().is_empty() {
+                continue;
+            }
+
+            // Adjust word and character bounding boxes to absolute image coordinates
+            let adjusted_words = words.into_iter().map(|mut w| {
+                if let Some(ref mut bbox) = w.bounding_box {
+                    bbox.x += region.x;
+                    bbox.y += region.y;
+                }
+                for c in &mut w.characters {
+                    if let Some(ref mut bbox) = c.bounding_box {
+                        bbox.x += region.x;
+                        bbox.y += region.y;
+                    }
+                }
+                w
+            }).collect::<Vec<_>>();
+
+            let line = Line {
+                text: text.clone(),
+                confidence: Some(conf),
+                bounding_box: Some(region.clone()),
+                polygon: Some(vec![
+                    Point { x: region.x, y: region.y },
+                    Point { x: region.x + region.width, y: region.y },
+                    Point { x: region.x + region.width, y: region.y + region.height },
+                    Point { x: region.x, y: region.y + region.height },
+                ]),
+                words: adjusted_words,
+            };
+
+            let block = Block {
+                id: format!("block_{}", i + 1),
+                text,
+                confidence: Some(conf),
+                bounding_box: Some(region.clone()),
+                polygon: Some(vec![
+                    Point { x: region.x, y: region.y },
+                    Point { x: region.x + region.width, y: region.y },
+                    Point { x: region.x + region.width, y: region.y + region.height },
+                    Point { x: region.x, y: region.y + region.height },
+                ]),
+                lines: vec![line],
+                paragraphs: Vec::new(),
+            };
+
+            blocks.push(block);
+        }
+
+        Ok(blocks)
     }
 }
